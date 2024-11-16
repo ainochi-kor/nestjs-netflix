@@ -25,9 +25,9 @@ export class BearerTokenMiddleware implements NestMiddleware {
       return next();
     }
 
-    const token = this.validateBearerToken(authHeader);
-
     try {
+      const token = this.validateBearerToken(authHeader);
+
       const decodedPayload = await this.jwtService.decode(token);
 
       if (
@@ -48,7 +48,7 @@ export class BearerTokenMiddleware implements NestMiddleware {
       req.user = payload;
       next();
     } catch (error) {
-      throw new UnauthorizedException('토큰이 만료됐습니다..');
+      next();
     }
   }
 
