@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Delete,
   Get,
@@ -26,6 +27,7 @@ export class AppController {
       title: '반지의 제왕',
     },
   ];
+  #idCounter = 3;
 
   constructor(private readonly appService: AppService) {}
 
@@ -44,12 +46,14 @@ export class AppController {
   }
 
   @Post()
-  postMovie() {
-    return {
-      id: 3,
-      name: '어벤져스',
-      charactors: ['아이언맨', '토르', '헐크'],
+  postMovie(@Body('title') title: string) {
+    const movie: Movie = {
+      id: this.#idCounter++,
+      title,
     };
+    this.#movies.push(movie);
+
+    return movie;
   }
 
   @Patch(':id')
@@ -62,7 +66,5 @@ export class AppController {
   }
 
   @Delete(':id')
-  deleteMovie() {
-    return 3;
-  }
+  deleteMovie() {}
 }
