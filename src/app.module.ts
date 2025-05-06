@@ -27,7 +27,7 @@ import * as Joi from 'joi';
         username: configService.get<string>('DB_USERNAME'),
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_DATABASE'),
-        entities: [], //[__dirname + '/**/*.entity{.ts,.js}'],
+        entities: [__dirname + '/**/*.entity{.ts,.js}'],
         synchronize: configService.get<string>('ENV') === 'dev', // dev일 때만 true
       }),
       inject: [ConfigService],
