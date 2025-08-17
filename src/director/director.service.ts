@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateDirectorDto } from './dto/create-director.dto';
 import { UpdateDirectorDto } from './dto/update-director.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -12,7 +16,15 @@ export class DirectorService {
     private readonly directorRepository: Repository<Director>,
   ) {}
 
-  create(createDirectorDto: CreateDirectorDto) {
+  async create(createDirectorDto: CreateDirectorDto) {
+    const director = await this.directorRepository.findOne({
+      where: { name: createDirectorDto.name },
+    });
+
+    if (director) {
+      throw new ConflictException('이미 존재하는 감독입니다.');
+    }
+
     return this.directorRepository.save(createDirectorDto);
   }
 
@@ -50,7 +62,7 @@ export class DirectorService {
     });
 
     if (!director) {
-      throw new NotFoundException('존재하지 않는 ID 값의 영화입니다.');
+      throw new NotFoundException('존재하지 않는 ID 값의 감독입니다.');
     }
 
     await this.directorRepository.delete(id);
