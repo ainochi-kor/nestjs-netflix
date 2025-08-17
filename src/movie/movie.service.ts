@@ -21,7 +21,9 @@ export class MovieService {
   async findAll(title?: string) {
     if (!title) {
       return [
-        await this.movieRepository.find(),
+        await this.movieRepository.find({
+          relations: ['director'], // 감독 정보도 함께 조회
+        }),
         await this.movieRepository.count(),
       ];
     }
@@ -30,13 +32,14 @@ export class MovieService {
       where: {
         title: Like(`%${title}%`),
       },
+      relations: ['director'], // 감독 정보도 함께 조회
     });
   }
 
   async findOne(id: number) {
     const movie = await this.movieRepository.findOne({
       where: { id },
-      relations: ['detail'],
+      relations: ['detail', 'director'],
     });
 
     if (!movie) {
