@@ -15,7 +15,9 @@ export class Movie extends BaseTable {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({
+    unique: true,
+  })
   title: string;
 
   @Column()
@@ -23,12 +25,14 @@ export class Movie extends BaseTable {
 
   @OneToOne(() => MovieDetail, (movieDetail) => movieDetail.id, {
     cascade: true,
+    nullable: false, // Null 허용 안 함
   })
   @JoinColumn()
   detail: MovieDetail;
 
   @ManyToOne(() => Director, (director) => director.id, {
     cascade: true, // 같이 저장
+    nullable: false, // Null 허용 안 함
   })
   director: Director;
 }

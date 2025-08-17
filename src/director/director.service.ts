@@ -17,14 +17,6 @@ export class DirectorService {
   ) {}
 
   async create(createDirectorDto: CreateDirectorDto) {
-    const director = await this.directorRepository.findOne({
-      where: { name: createDirectorDto.name },
-    });
-
-    if (director) {
-      throw new ConflictException('이미 존재하는 감독입니다.');
-    }
-
     return this.directorRepository.save(createDirectorDto);
   }
 
