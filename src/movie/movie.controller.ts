@@ -9,6 +9,8 @@ import {
   Query,
   UseInterceptors,
   ClassSerializerInterceptor,
+  ParseIntPipe,
+  BadRequestException,
 } from '@nestjs/common';
 import { MovieService } from './movie.service';
 import { CreateMovieDto } from './dto/create-movie.dto';
@@ -25,8 +27,18 @@ export class MovieController {
   }
 
   @Get(':id')
-  getMovie(@Param('id') id: string) {
-    return this.movieService.findOne(+id);
+  getMovie(
+    @Param(
+      'id',
+      new ParseIntPipe({
+        exceptionFactory() {
+          throw new BadRequestException('숫자를 입력해주세요.');
+        },
+      }),
+    )
+    id: number,
+  ) {
+    return this.movieService.findOne(id);
   }
 
   @Post()
