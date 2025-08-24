@@ -1,3 +1,4 @@
+import { Exclude } from 'class-transformer';
 import { BaseTable } from 'src/common/entity/base-table.entity';
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
@@ -16,6 +17,10 @@ export class User extends BaseTable {
   email: string;
 
   @Column()
+  @Exclude({
+    // toClassOnly: true, // 요청 시 제외
+    toPlainOnly: true, // 응답 시 제외
+  })
   password: string;
 
   @Column({
