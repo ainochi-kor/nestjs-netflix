@@ -56,7 +56,9 @@ export class AuthService {
         role: Role;
         type: 'access' | 'refresh';
       }>(token, {
-        secret: this.configService.get<string>('REFRESH_TOKEN_SECRET'),
+        secret: this.configService.get<string>(
+          isRefreshToken ? ENV.REFRESH_TOKEN_SECRET : ENV.ACCESS_TOKEN_SECRET,
+        ),
       });
 
       if (isRefreshToken) {
