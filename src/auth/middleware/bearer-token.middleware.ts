@@ -25,9 +25,9 @@ export class BearerTokenMiddleware implements NestMiddleware {
       return;
     }
 
-    const token = this.validateBearerToken(authHeader);
-
     try {
+      const token = this.validateBearerToken(authHeader);
+
       const decodedPayload: {
         id: number;
         role: Role;
@@ -58,7 +58,7 @@ export class BearerTokenMiddleware implements NestMiddleware {
       req.user = payload;
       next();
     } catch {
-      throw new UnauthorizedException('토큰이 만료되었습니다.');
+      next();
     }
   }
 
