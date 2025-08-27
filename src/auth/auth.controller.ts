@@ -3,7 +3,7 @@ import { AuthService } from './auth.service';
 import { LocalAuthGuard } from './strategy/local.strategy';
 import { User } from 'src/user/entities/user.entity';
 import { JwtAuthGuard } from './strategy/jwt.strategy';
-import { Public } from './decorator/publick.decorator';
+import { Public } from './decorator/public.decorator';
 
 @Controller('auth')
 export class AuthController {

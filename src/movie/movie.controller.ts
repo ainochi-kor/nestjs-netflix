@@ -18,7 +18,7 @@ import { CreateMovieDto } from './dto/create-movie.dto';
 import { UpdateMovieDto } from './dto/update-movie.dto';
 import { MovieTitleValidationPipe } from './pipe/movie-title-validation.pipe';
 import { AuthGuard } from 'src/auth/guard/auth.guard';
-import { Public } from 'src/auth/decorator/publick.decorator';
+import { Public } from 'src/auth/decorator/public.decorator';
 
 @Controller('movie')
 @UseInterceptors(ClassSerializerInterceptor)
