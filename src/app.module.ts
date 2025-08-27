@@ -7,6 +7,7 @@ import { GenreModule } from './genre/genre.module';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import * as Joi from 'joi';
+import { ENV } from './common/const/env.const';
 
 @Module({
   imports: [
@@ -28,14 +29,14 @@ import * as Joi from 'joi';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
-        type: configService.get<string>('DB_TYPE') as 'postgres',
-        host: configService.get<string>('DB_HOST'),
-        port: configService.get<number>('DB_PORT'),
-        username: configService.get<string>('DB_USERNAME'),
-        password: configService.get<string>('DB_PASSWORD'),
-        database: configService.get<string>('DB_DATABASE'),
+        type: configService.get<string>(ENV.DB_TYPE) as 'postgres',
+        host: configService.get<string>(ENV.DB_HOST),
+        port: configService.get<number>(ENV.DB_PORT),
+        username: configService.get<string>(ENV.DB_USERNAME),
+        password: configService.get<string>(ENV.DB_PASSWORD),
+        database: configService.get<string>(ENV.DB_DATABASE),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: configService.get<string>('ENV') === 'dev', // dev일 때만 true
+        synchronize: configService.get<string>(ENV.ENV) === 'dev', // dev일 때만 true
       }),
       inject: [ConfigService],
     }),
