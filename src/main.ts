@@ -8,6 +8,9 @@ async function bootstrap() {
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
+      transformOptions: {
+        enableImplicitConversion: true, // class의 타입스크립트 타입 기반으로 타입 변환
+      },
     }),
   );
   const port = process.env.PORT ?? 3000;
