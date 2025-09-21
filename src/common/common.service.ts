@@ -17,7 +17,7 @@ export class CommonService {
     qb.skip(skip);
   }
 
-  applyCursorPaginationParamsToQb<T extends ObjectLiteral>(
+  async applyCursorPaginationParamsToQb<T extends ObjectLiteral>(
     qb: SelectQueryBuilder<T>,
     dto: CursorPaginationDto,
   ) {
@@ -42,5 +42,34 @@ export class CommonService {
     }
 
     qb.take(take);
+
+    const result = await qb.getMany();
+    const nextCursor = this.generateNextCursor(result, order);
+
+    return { qb, nextCursor };
+  }
+
+  generateNextCursor<T extends ObjectLiteral>(
+    result: T[],
+    order: string[],
+  ): string | null {
+    if (result.length === 0) {
+      return null;
+    }
+
+    const lastItem: Record<string, unknown> = result[result.length - 1];
+    const values: Record<string, unknown> = {};
+
+    order.forEach((columnOrder) => {
+      const [column] = columnOrder.split('_');
+      values[column] = lastItem[column];
+    });
+
+    const cursorObj = { values, order };
+    const nextCursor = Buffer.from(JSON.stringify(cursorObj)).toString(
+      'base64',
+    );
+
+    return nextCursor;
   }
 }

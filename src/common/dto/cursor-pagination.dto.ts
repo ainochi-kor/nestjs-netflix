@@ -10,7 +10,7 @@ export class CursorPaginationDto {
     each: true,
   })
   @IsOptional()
-  order: string[] = [];
+  order: string[] = ['id_DESC'];
 
   @IsInt()
   @IsOptional()
