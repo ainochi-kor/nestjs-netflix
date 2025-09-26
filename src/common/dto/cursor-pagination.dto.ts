@@ -1,7 +1,7 @@
 import { IsArray, IsInt, IsOptional, IsString } from 'class-validator';
 
 export class CursorPaginationDto {
-  @IsInt()
+  @IsString()
   @IsOptional()
   cursor?: string;
 
