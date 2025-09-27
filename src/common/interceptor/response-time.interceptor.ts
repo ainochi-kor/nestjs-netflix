@@ -2,7 +2,6 @@ import {
   CallHandler,
   ExecutionContext,
   Injectable,
-  InternalServerErrorException,
   NestInterceptor,
 } from '@nestjs/common';
 import { delay, Observable, tap } from 'rxjs';
@@ -23,13 +22,7 @@ export class ResponseTimeInterceptor implements NestInterceptor {
       tap(() => {
         const resTime = Date.now();
         const diff = resTime - reqTime;
-
-        if (diff > 1000) {
-          console.log(`TIMEOUT: [${req.method} ${req.path}] ${diff}ms`);
-          throw new InternalServerErrorException('Request Timeout');
-        } else {
-          console.log(`[${req.method} ${req.path}] ${diff}ms`);
-        }
+        console.log(`[${req.method} ${req.path}] ${diff}ms`);
       }),
     );
   }
