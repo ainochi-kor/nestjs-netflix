@@ -11,6 +11,7 @@ import {
   ClassSerializerInterceptor,
   ParseIntPipe,
   BadRequestException,
+  Request,
 } from '@nestjs/common';
 import { MovieService } from './movie.service';
 import { CreateMovieDto } from './dto/create-movie.dto';
@@ -19,6 +20,8 @@ import { Public } from 'src/auth/decorator/public.decorator';
 import { RBAC } from 'src/auth/decorator/rbac.decorator';
 import { Role } from 'src/user/entities/user.entity';
 import { GetMoviesDto } from 'src/genre/dto/get-movies.dto';
+import { TransactionInterceptor } from 'src/common/interceptor/transaction.interceptor';
+import { QueryRunner } from 'typeorm';
 
 @Controller('movie')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -49,8 +52,12 @@ export class MovieController {
 
   @Post()
   @RBAC(Role.admin)
-  postMovie(@Body() body: CreateMovieDto) {
-    return this.movieService.create(body);
+  @UseInterceptors(TransactionInterceptor)
+  postMovie(
+    @Body() body: CreateMovieDto,
+    @Request() req: Request & { queryRunner?: QueryRunner },
+  ) {
+    return this.movieService.create(body, req.queryRunner as QueryRunner);
   }
 
   @Patch(':id')
