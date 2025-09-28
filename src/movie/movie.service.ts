@@ -80,11 +80,7 @@ export class MovieService {
     return movie;
   }
 
-  async create(
-    createMovieDto: CreateMovieDto,
-    qr: QueryRunner,
-    files: Express.Multer.File[],
-  ) {
+  async create(createMovieDto: CreateMovieDto, qr: QueryRunner) {
     const director = await qr.manager.findOne(Director, {
       where: {
         id: createMovieDto.directorId,
