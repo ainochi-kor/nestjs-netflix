@@ -12,7 +12,7 @@ import {
   ParseIntPipe,
   BadRequestException,
   Request,
-  UploadedFiles,
+  UploadedFile,
 } from '@nestjs/common';
 import { MovieService } from './movie.service';
 import { CreateMovieDto } from './dto/create-movie.dto';
@@ -24,7 +24,6 @@ import { GetMoviesDto } from 'src/genre/dto/get-movies.dto';
 import { TransactionInterceptor } from 'src/common/interceptor/transaction.interceptor';
 import { QueryRunner } from 'typeorm';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { MovieFilePipe } from './pipe/movie-file.pipe';
 
 @Controller('movie')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -71,17 +70,15 @@ export class MovieController {
   postMovie(
     @Body() body: CreateMovieDto,
     @Request() req: Request & { queryRunner?: QueryRunner },
-    @UploadedFiles(
-      new MovieFilePipe({
-        maxSize: 20,
-        mimetype: 'video/mp4',
-      }),
-    )
-    movie: Express.Multer.File,
+    @UploadedFile() movie: Express.Multer.File,
   ) {
     console.log(movie);
 
-    return this.movieService.create(body, req.queryRunner as QueryRunner);
+    return this.movieService.create(
+      body,
+      movie.filename,
+      req.queryRunner as QueryRunner,
+    );
   }
 
   @Patch(':id')

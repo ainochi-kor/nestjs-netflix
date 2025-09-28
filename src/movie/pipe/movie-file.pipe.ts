@@ -18,6 +18,8 @@ export class MovieFilePipe
     value: Express.Multer.File,
     // metadata: ArgumentMetadata,
   ): Promise<Express.Multer.File> {
+    console.log(value);
+
     if (!value) {
       throw new BadRequestException('File is required');
     }
