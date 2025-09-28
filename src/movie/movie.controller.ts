@@ -56,16 +56,28 @@ export class MovieController {
   @RBAC(Role.admin)
   @UseInterceptors(TransactionInterceptor)
   @UseInterceptors(
-    FileFieldsInterceptor([
+    FileFieldsInterceptor(
+      [
+        {
+          name: 'movie',
+          maxCount: 1,
+        },
+        {
+          name: 'poster',
+          maxCount: 2,
+        },
+      ],
       {
-        name: 'movie',
-        maxCount: 1,
+        limits: { fileSize: 1024 * 1024 * 20 }, // 20MB
+        fileFilter: (req, file, cb) => {
+          if (!file.mimetype.match(/\/(mp4|jpeg|png|jpg)$/)) {
+            cb(new BadRequestException('지원하지 않는 확장자입니다.'), false);
+          } else {
+            cb(null, true);
+          }
+        },
       },
-      {
-        name: 'poster',
-        maxCount: 2,
-      },
-    ]),
+    ),
   )
   postMovie(
     @Body() body: CreateMovieDto,
