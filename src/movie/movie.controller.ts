@@ -23,7 +23,8 @@ import { Role } from 'src/user/entities/user.entity';
 import { GetMoviesDto } from 'src/genre/dto/get-movies.dto';
 import { TransactionInterceptor } from 'src/common/interceptor/transaction.interceptor';
 import { QueryRunner } from 'typeorm';
-import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { MovieFilePipe } from './pipe/movie-file.pipe';
 
 @Controller('movie')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -56,39 +57,29 @@ export class MovieController {
   @RBAC(Role.admin)
   @UseInterceptors(TransactionInterceptor)
   @UseInterceptors(
-    FileFieldsInterceptor(
-      [
-        {
-          name: 'movie',
-          maxCount: 1,
-        },
-        {
-          name: 'poster',
-          maxCount: 2,
-        },
-      ],
-      {
-        limits: { fileSize: 1024 * 1024 * 20 }, // 20MB
-        fileFilter: (req, file, cb) => {
-          if (!file.mimetype.match(/\/(mp4|jpeg|png|jpg)$/)) {
-            cb(new BadRequestException('지원하지 않는 확장자입니다.'), false);
-          } else {
-            cb(null, true);
-          }
-        },
+    FileInterceptor('movie', {
+      limits: { fileSize: 1024 * 1024 * 20 }, // 20MB
+      fileFilter: (req, file, cb) => {
+        if (file.mimetype !== 'video/mp4') {
+          cb(new BadRequestException('지원하지 않는 확장자입니다.'), false);
+        } else {
+          cb(null, true);
+        }
       },
-    ),
+    }),
   )
   postMovie(
     @Body() body: CreateMovieDto,
     @Request() req: Request & { queryRunner?: QueryRunner },
-    @UploadedFiles()
-    files: {
-      movie?: Express.Multer.File[];
-      poster?: Express.Multer.File[];
-    },
+    @UploadedFiles(
+      new MovieFilePipe({
+        maxSize: 20,
+        mimetype: 'video/mp4',
+      }),
+    )
+    movie: Express.Multer.File,
   ) {
-    console.log(files);
+    console.log(movie);
 
     return this.movieService.create(body, req.queryRunner as QueryRunner);
   }
