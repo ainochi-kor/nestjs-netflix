@@ -22,6 +22,7 @@ import { Role } from 'src/user/entities/user.entity';
 import { GetMoviesDto } from 'src/genre/dto/get-movies.dto';
 import { TransactionInterceptor } from 'src/common/interceptor/transaction.interceptor';
 import { QueryRunner } from 'typeorm';
+import { UserId } from 'src/user/decorator/user-id.decorator';
 
 @Controller('movie')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -56,8 +57,13 @@ export class MovieController {
   postMovie(
     @Body() body: CreateMovieDto,
     @Request() req: Request & { queryRunner?: QueryRunner },
+    @UserId() userId: number,
   ) {
-    return this.movieService.create(body, req.queryRunner as QueryRunner);
+    return this.movieService.create(
+      body,
+      userId,
+      req.queryRunner as QueryRunner,
+    );
   }
 
   @Patch(':id')
