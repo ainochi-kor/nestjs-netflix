@@ -71,14 +71,14 @@ export class TasksService {
     console.log('end');
   }
 
-  @Cron('* * * * * *', {
-    name: 'printer',
-  })
+  // @Cron('* * * * * *', {
+  //   name: 'printer',
+  // })
   printer() {
     console.log('printer');
   }
 
-  @Cron('*/5 * * * * *')
+  // @Cron('*/5 * * * * *')
   async stoper() {
     console.log('stoper');
 
