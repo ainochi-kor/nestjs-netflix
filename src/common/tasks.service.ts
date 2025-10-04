@@ -1,11 +1,17 @@
 import { Injectable } from '@nestjs/common';
-// import { Cron } from '@nestjs/schedule';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Cron } from '@nestjs/schedule';
 import { readdir, unlink } from 'fs/promises';
 import { join, parse } from 'path';
+import { Movie } from 'src/movie/entity/movie.entity';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class TasksService {
-  constructor() {}
+  constructor(
+    @InjectRepository(Movie)
+    private readonly movieRepository: Repository<Movie>,
+  ) {}
 
   // @Cron('* * * * * *')
   async earseOrphanedFiles() {
@@ -41,5 +47,26 @@ export class TasksService {
     );
 
     console.log('deleteTargetsFiles', deleteTargetsFiles);
+  }
+
+  @Cron('0 * * * * *')
+  async calculateMovieLikeCounts() {
+    console.log('run');
+
+    await this.movieRepository.query(`
+      UPDATE movie m 
+      SET "likeCount" = (
+        SELECT count(*) FROM movie_user_like mul WHERE m.id = mul."movieId" AND mul."isLike" = true
+      )
+    `);
+
+    await this.movieRepository.query(`
+      UPDATE movie m 
+      SET "dislikeCount" = (
+        SELECT count(*) FROM movie_user_like mul WHERE m.id = mul."movieId" AND mul."isLike" = false
+      )
+    `);
+
+    console.log('end');
   }
 }
