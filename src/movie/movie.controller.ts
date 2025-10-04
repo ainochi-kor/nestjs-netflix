@@ -24,6 +24,7 @@ import { TransactionInterceptor } from 'src/common/interceptor/transaction.inter
 import { QueryRunner as QR } from 'typeorm';
 import { UserId } from 'src/user/decorator/user-id.decorator';
 import { QueryRunner } from 'src/common/decorator/query-runner.decorator';
+import { CacheInterceptor, CacheKey, CacheTTL } from '@nestjs/cache-manager';
 
 @Controller('movie')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -37,6 +38,9 @@ export class MovieController {
   }
 
   @Get('recent')
+  @UseInterceptors(CacheInterceptor) // 자동으로 return 값을 캐싱하여 사용
+  @CacheKey('MOVIE_RECENT') // 캐시 키 설정하여 url이 달라도 같은 캐시 사용
+  @CacheTTL(1000) // 캐시 시간 설정 (초 단위)
   getMoviesRecent() {
     return this.movieService.findRecent();
   }

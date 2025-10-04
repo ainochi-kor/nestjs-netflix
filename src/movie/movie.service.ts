@@ -113,7 +113,7 @@ export class MovieService {
       take: 10,
     });
 
-    await this.cacheManager.set('MOVIE_RECENT', data, 0);
+    await this.cacheManager.set('MOVIE_RECENT', data);
 
     return data;
   }
