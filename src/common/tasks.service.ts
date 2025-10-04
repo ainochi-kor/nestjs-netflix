@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Cron, SchedulerRegistry } from '@nestjs/schedule';
 import { readdir, unlink } from 'fs/promises';
@@ -8,11 +8,24 @@ import { Repository } from 'typeorm';
 
 @Injectable()
 export class TasksService {
+  private readonly logger = new Logger(TasksService.name);
+
   constructor(
     @InjectRepository(Movie)
     private readonly movieRepository: Repository<Movie>,
     private readonly schedulerRegistry: SchedulerRegistry,
   ) {}
+
+  @Cron('* * * * * *')
+  logEverySecond() {
+    // 로그 레벨 순위
+    this.logger.fatal('FATAL 레벨 로그'); // 치명적인 에러, 시스템 다운 등
+    this.logger.error('ERROR 레벨 로그'); // 에러 발생 시
+    this.logger.warn('WARN 레벨 로그'); // 주의가 필요한 상황
+    this.logger.log('LOG 레벨 로그'); // 운영 시, 중요한 정보 기록할 때
+    this.logger.debug('DEBUG 레벨 로그'); // 개발 시, 확인하기 위해 찍는 로그
+    this.logger.verbose('VERBOSE 레벨 로그'); // 호기심에 찍어보는 로그
+  }
 
   // @Cron('* * * * * *')
   async earseOrphanedFiles() {
