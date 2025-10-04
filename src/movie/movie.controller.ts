@@ -26,7 +26,7 @@ import { UserId } from 'src/user/decorator/user-id.decorator';
 import { QueryRunner } from 'src/common/decorator/query-runner.decorator';
 import { CacheInterceptor, CacheKey, CacheTTL } from '@nestjs/cache-manager';
 import { Throttle } from 'src/common/decorator/throttle.decorator';
-import { ApiBearerAuth } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 @Controller('movie')
 @ApiBearerAuth()
@@ -37,6 +37,13 @@ export class MovieController {
   @Get()
   @Public()
   @Throttle({ count: 10, unit: 'minute' })
+  @ApiOperation({
+    description: '[Movie]를 Pagination 하는 API (인증 없어도 사용 가능)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: '성공적으로 [Movie]를 Pagination 합니다.',
+  })
   getMovies(@Query() dto: GetMoviesDto, @UserId() userId?: number) {
     return this.movieService.findAll(dto, userId);
   }
