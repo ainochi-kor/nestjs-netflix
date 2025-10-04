@@ -18,7 +18,7 @@ export class TasksService {
     private readonly logger: LoggerService,
   ) {}
 
-  @Cron('* * * * * *')
+  // @Cron('* * * * * *')
   logEverySecond() {
     // 로그 레벨 순위
     if (this.logger.fatal) {
