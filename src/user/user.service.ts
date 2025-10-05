@@ -50,5 +50,7 @@ export class UserService {
     }
 
     await this.userRepository.remove(user);
+
+    return id;
   }
 }

@@ -9,7 +9,7 @@ const mockUserRepository = {
   save: jest.fn(),
   find: jest.fn(),
   update: jest.fn(),
-  delete: jest.fn(),
+  remove: jest.fn(),
 };
 describe('UserService', () => {
   let userService: UserService;
@@ -67,6 +67,32 @@ describe('UserService', () => {
       jest.spyOn(mockUserRepository, 'findOne').mockResolvedValue(null);
 
       await expect(userService.findOne(999)).rejects.toThrow(NotFoundException);
+      expect(mockUserRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 999 },
+      });
+    });
+  });
+
+  describe('remove', () => {
+    it('should delete a user by id', async () => {
+      const id = 999;
+
+      jest.spyOn(mockUserRepository, 'findOne').mockResolvedValue({
+        id: 1,
+      });
+
+      const result = await userService.remove(id);
+
+      expect(result).toEqual(id);
+      expect(mockUserRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 999 },
+      });
+    });
+
+    it('should throw NotFoundException if user to remove not found', async () => {
+      jest.spyOn(mockUserRepository, 'findOne').mockResolvedValue(null);
+
+      await expect(userService.remove(999)).rejects.toThrow(NotFoundException);
       expect(mockUserRepository.findOne).toHaveBeenCalledWith({
         where: { id: 999 },
       });
