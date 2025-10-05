@@ -6,6 +6,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CreateUserDto } from './dto/create-user.dto';
 import * as bcrypt from 'bcrypt';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 const mockUserRepository = {
   findOne: jest.fn(),
@@ -38,6 +39,10 @@ describe('UserService', () => {
     }).compile();
 
     userService = module.get<UserService>(UserService);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   it('should be defined', () => {
@@ -170,6 +175,70 @@ describe('UserService', () => {
       expect(mockUserRepository.findOne).toHaveBeenCalledWith({
         where: { id: 999 },
       });
+    });
+  });
+
+  describe('update', () => {
+    it('should update a user if it exists and return the updated user ', async () => {
+      const updatedUser: UpdateUserDto = {
+        email: 'updated@example.com',
+        password: 'newpassword',
+      };
+
+      const hashRounds = 10;
+      const hashedPassword = 'hashedNewPassword';
+      const user = {
+        id: 1,
+        email: updatedUser.email,
+      };
+
+      jest.spyOn(mockUserRepository, 'findOne').mockResolvedValueOnce(user);
+      jest.spyOn(mockConfigService, 'get').mockReturnValue(hashRounds);
+      jest
+        .spyOn(bcrypt, 'hash')
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        .mockImplementation((pw, hashRounds) => hashedPassword);
+      jest.spyOn(mockUserRepository, 'update').mockResolvedValue(undefined);
+      jest.spyOn(mockUserRepository, 'findOne').mockResolvedValueOnce({
+        ...user,
+        password: hashedPassword,
+      });
+
+      const result = await userService.update(1, updatedUser);
+
+      expect(result).toEqual({ ...user, password: hashedPassword });
+      expect(mockUserRepository.findOne).toHaveBeenCalledWith({
+        where: { id: user.id },
+      });
+      expect(mockConfigService.get).toHaveBeenCalledWith(expect.anything());
+      expect(bcrypt.hash).toHaveBeenCalledWith(
+        updatedUser.password,
+        hashRounds,
+      );
+      expect(mockUserRepository.update).toHaveBeenCalledWith(
+        { id: 1 },
+        {
+          ...updatedUser,
+          password: hashedPassword,
+        },
+      );
+    });
+
+    it('should throw a NotFoundException if user to update not found', async () => {
+      jest.spyOn(mockUserRepository, 'findOne').mockResolvedValue(null);
+
+      const updatedUser: UpdateUserDto = {
+        email: 'updated@example.com',
+        password: 'newpassword',
+      };
+
+      await expect(userService.update(999, updatedUser)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(mockUserRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 999 },
+      });
+      expect(mockUserRepository.update).not.toHaveBeenCalled();
     });
   });
 });

@@ -57,12 +57,28 @@ export class UserService {
 
   async update(id: number, updateUserDto: UpdateUserDto) {
     const user = await this.userRepository.findOne({ where: { id } });
+    const { password } = updateUserDto;
 
     if (!user) {
       throw new NotFoundException('존재하지 않는 사용자입니다.');
     }
 
-    await this.userRepository.update({ id }, updateUserDto);
+    let newPassword = user.password;
+
+    if (password) {
+      newPassword = await bcrypt.hash(
+        password,
+        this.configService.get<number>(ENV.HASH_ROUNDS) ?? 10,
+      );
+    }
+
+    await this.userRepository.update(
+      { id },
+      {
+        ...updateUserDto,
+        password: newPassword,
+      },
+    );
 
     return this.userRepository.findOne({ where: { id } });
   }
