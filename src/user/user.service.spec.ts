@@ -11,7 +11,7 @@ const mockUserRepository = {
   delete: jest.fn(),
 };
 describe('UserService', () => {
-  let service: UserService;
+  let userService: UserService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -24,10 +24,27 @@ describe('UserService', () => {
       ],
     }).compile();
 
-    service = module.get<UserService>(UserService);
+    userService = module.get<UserService>(UserService);
   });
 
   it('should be defined', () => {
-    expect(service).toBeDefined();
+    expect(userService).toBeDefined();
+  });
+
+  describe('findAll', () => {
+    it('should return all users', async () => {
+      const users = [
+        { id: 1, name: 'John' },
+        { id: 2, name: 'Jane' },
+      ];
+
+      // mockUserRepository의 find 메서드가 호출될 때 users 배열을 반환하도록 설정
+      mockUserRepository.find.mockResolvedValue(users);
+
+      const result = await userService.findAll();
+
+      expect(result).toEqual(users);
+      expect(mockUserRepository.find).toHaveBeenCalled();
+    });
   });
 });
