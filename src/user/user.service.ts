@@ -1,19 +1,44 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
+import * as bcrypt from 'bcrypt';
+import { ENV } from 'src/common/const/env.const';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>, // UserRepository 주입
+    private readonly configService: ConfigService,
   ) {}
 
   async create(createUserDto: CreateUserDto) {
-    return await this.userRepository.save(createUserDto);
+    const { email, password } = createUserDto;
+
+    const user = await this.userRepository.findOne({
+      where: { email },
+    });
+
+    if (user) {
+      throw new BadRequestException('이미 가입한 이메일입니다.');
+    }
+
+    const hashRounds = this.configService.get<number>(ENV.HASH_ROUNDS) ?? 10;
+    const hashedPassword = await bcrypt.hash(password, hashRounds);
+    await this.userRepository.save({
+      email,
+      password: hashedPassword,
+    });
+
+    return this.userRepository.findOne({ where: { email } });
   }
 
   async findAll() {
