@@ -400,4 +400,95 @@ describe('MovieService', () => {
       });
     });
   });
+
+  describe('remove', () => {
+    let findOneMock: jest.SpyInstance;
+    let deleteMovieMock: jest.SpyInstance;
+    let deleteMovieDetailMock: jest.SpyInstance;
+
+    beforeEach(() => {
+      findOneMock = jest.spyOn(movieRepository, 'findOne');
+      deleteMovieMock = jest.spyOn(movieService, 'deleteMovie');
+      deleteMovieDetailMock = jest.spyOn(movieDetailRepository, 'delete');
+    });
+
+    it('should delete a movie by id and return the id', async () => {
+      const movie = {
+        id: 1,
+        detail: { id: 2 },
+      };
+
+      findOneMock.mockResolvedValue(movie as Movie);
+      deleteMovieMock.mockResolvedValue(undefined);
+      deleteMovieDetailMock.mockResolvedValue(undefined);
+
+      const result = await movieService.remove(movie.id);
+
+      expect(findOneMock).toHaveBeenCalledWith({
+        where: { id: movie.id },
+      });
+      expect(deleteMovieMock).toHaveBeenCalledWith(movie.id);
+      expect(deleteMovieDetailMock).toHaveBeenCalledWith(movie.detail.id);
+      expect(result).toEqual(movie.id);
+    });
+
+    it('should throw NotFoundException if movie to remove not found', async () => {
+      findOneMock.mockResolvedValue(null);
+
+      await expect(movieService.remove(999)).rejects.toThrow(NotFoundException);
+      expect(findOneMock).toHaveBeenCalledWith({
+        where: { id: 999 },
+      });
+    });
+  });
+
+  describe('toggleMovieLike', () => {
+    let findOneMovieMock: jest.SpyInstance;
+    let findOneUserMock: jest.SpyInstance;
+    let getLikedRecordMock: jest.SpyInstance;
+    let deleteMock: jest.SpyInstance;
+    let updateLikeMock: jest.SpyInstance;
+    let saveLikeMock: jest.SpyInstance;
+
+    beforeEach(() => {
+      findOneMovieMock = jest.spyOn(movieRepository, 'findOne');
+      findOneUserMock = jest.spyOn(userRepository, 'findOne');
+      getLikedRecordMock = jest.spyOn(movieService, 'getLikedRecord');
+      saveLikeMock = jest.spyOn(movieUserLikeRepository, 'save');
+      deleteMock = jest.spyOn(movieUserLikeRepository, 'delete');
+      updateLikeMock = jest.spyOn(movieUserLikeRepository, 'update');
+    });
+
+    it('should like a movie', async () => {
+      const movie = { id: 1 };
+      const user = { id: 1 };
+      const likeRecord = { movie, user, isLike: true };
+
+      findOneMovieMock.mockResolvedValue(movie as Movie);
+      findOneUserMock.mockResolvedValue(user as User);
+      getLikedRecordMock
+        .mockResolvedValueOnce(likeRecord)
+        .mockResolvedValueOnce({ isLike: false });
+
+      const result = await movieService.toggleMovieLike(
+        movie.id,
+        user.id,
+        false,
+      );
+
+      expect(findOneMovieMock).toHaveBeenCalledWith({
+        where: { id: movie.id },
+      });
+      expect(findOneUserMock).toHaveBeenCalledWith({ where: { id: user.id } });
+      expect(getLikedRecordMock).toHaveBeenCalledWith(movie.id, user.id);
+      expect(updateLikeMock).toHaveBeenCalledWith(
+        {
+          movie: { id: movie.id },
+          user: { id: user.id },
+        },
+        { isLike: false },
+      );
+      expect(result).toEqual({ isLike: false });
+    });
+  });
 });
