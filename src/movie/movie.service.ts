@@ -128,8 +128,9 @@ export class MovieService {
     return { data, nextCursor, count };
   }
 
-  async findOne(id: number) {
-    const movie = await this.movieRepository
+  /* istanbul ignore next */
+  findMovieDetailById(id: number) {
+    return this.movieRepository
       .createQueryBuilder('movie')
       .leftJoinAndSelect('movie.director', 'director')
       .leftJoinAndSelect('movie.genres', 'genres')
@@ -137,6 +138,10 @@ export class MovieService {
       .leftJoinAndSelect('movie.creator', 'creator')
       .where('movie.id = :id', { id })
       .getOne();
+  }
+
+  async findOne(id: number) {
+    const movie = await this.findMovieDetailById(id);
 
     if (!movie) {
       throw new NotFoundException('존재하지 않는 ID 값의 영화입니다.');
@@ -144,6 +149,67 @@ export class MovieService {
 
     return movie;
   }
+
+  /* istanbul ignore next */
+  createMovieDetail(qr: QueryRunner, createMovieDto: CreateMovieDto) {
+    return qr.manager
+      .createQueryBuilder()
+      .insert()
+      .into(MovieDetail)
+      .values({
+        detail: createMovieDto.detail,
+      })
+      .execute();
+  }
+
+  /* istanbul ignore next */
+  createMovie(
+    qr: QueryRunner,
+    createMovieDto: CreateMovieDto,
+    director: Director,
+    movieDetailId: number,
+    userId: number,
+    movieFolder = 'public/movie',
+  ) {
+    return qr.manager
+      .createQueryBuilder()
+      .insert()
+      .into(Movie)
+      .values({
+        title: createMovieDto.title,
+        detail: {
+          id: movieDetailId,
+        },
+        director,
+        creator: { id: userId },
+        movieFilePath: join(movieFolder, createMovieDto.movieFileName),
+      })
+      .execute();
+  }
+
+  /* istanbul ignore next */
+  createMovieGenreRelation(qr: QueryRunner, movieId: number, genres: Genre[]) {
+    return qr.manager
+      .createQueryBuilder()
+      .relation(Movie, 'genres')
+      .of(movieId)
+      .add(genres.map((genre) => genre.id));
+  }
+
+  /* istanbul ignore next */
+  renameMovieFile(
+    tempFolder = 'public/temp',
+    movieFolder = 'public/movie',
+    createMovieDto: CreateMovieDto,
+  ) {
+    return rename(
+      join(process.cwd(), tempFolder, createMovieDto.movieFileName),
+      join(process.cwd(), movieFolder, createMovieDto.movieFileName),
+    );
+  }
+
+  /* istanbul ignore next */
+  /* istanbul ignore next */
 
   async create(
     createMovieDto: CreateMovieDto,
@@ -172,47 +238,27 @@ export class MovieService {
       );
     }
 
-    const movieDetail = await qr.manager
-      .createQueryBuilder()
-      .insert()
-      .into(MovieDetail)
-      .values({
-        detail: createMovieDto.detail,
-      })
-      .execute();
+    const movieDetail = await this.createMovieDetail(qr, createMovieDto);
 
     const movieDetailId = movieDetail.identifiers[0].id as number;
 
     const movieFolder = join('public', 'movie');
     const tempFolder = join('public', 'temp');
 
-    const movie = await qr.manager
-      .createQueryBuilder()
-      .insert()
-      .into(Movie)
-      .values({
-        title: createMovieDto.title,
-        detail: {
-          id: movieDetailId,
-        },
-        director,
-        creator: { id: userId },
-        movieFilePath: join(movieFolder, createMovieDto.movieFileName),
-      })
-      .execute();
+    const movie = await this.createMovie(
+      qr,
+      createMovieDto,
+      director,
+      movieDetailId,
+      userId,
+      movieFolder,
+    );
     const movieId = movie.identifiers[0].id as number;
 
-    await qr.manager
-      .createQueryBuilder()
-      .relation(Movie, 'genres')
-      .of(movieId)
-      .add(genres.map((genre) => genre.id));
+    await this.createMovieGenreRelation(qr, movieId, genres);
 
     // 파일 이동
-    await rename(
-      join(process.cwd(), tempFolder, createMovieDto.movieFileName),
-      join(process.cwd(), movieFolder, createMovieDto.movieFileName),
-    );
+    await this.renameMovieFile(tempFolder, movieFolder, createMovieDto);
 
     return await qr.manager.findOne(Movie, {
       where: { id: movieId },
@@ -261,6 +307,8 @@ export class MovieService {
             id: In(genreIds), // 각 값이 존재하는지 확인
           },
         });
+
+        console.log({ genres });
 
         if (genres.length !== genreIds.length) {
           throw new NotFoundException(
