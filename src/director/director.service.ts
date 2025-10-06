@@ -1,8 +1,4 @@
-import {
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateDirectorDto } from './dto/create-director.dto';
 import { UpdateDirectorDto } from './dto/update-director.dto';
 import { InjectRepository } from '@nestjs/typeorm';
