@@ -341,8 +341,6 @@ export class MovieService {
           },
         });
 
-        console.log({ genres });
-
         if (genres.length !== genreIds.length) {
           throw new NotFoundException(
             `존재하지 않는 ID의 장르가 있습니다! 존재하는 ids -> ${genres.map((genre) => genre.id).join(', ')}`,
