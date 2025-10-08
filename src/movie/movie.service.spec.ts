@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 import { MovieService } from './movie.service';
@@ -13,10 +14,13 @@ import { CommonService } from 'src/common/common.service';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { GetMoviesDto } from 'src/genre/dto/get-movies.dto';
-import { title } from 'process';
-import { NotFoundException } from '@nestjs/common';
-import { find } from 'rxjs';
+import {
+  BadRequestException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { CreateMovieDto } from './dto/create-movie.dto';
+import { UpdateMovieDto } from './dto/update-movie.dto';
 
 describe('MovieService', () => {
   let movieService: MovieService;
@@ -305,11 +309,10 @@ describe('MovieService', () => {
 
       const result = await movieService.create(createMovieDto, userId, qr);
 
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(qr.manager.findOne).toHaveBeenCalledWith(Director, {
         where: { id: createMovieDto.directorId },
       });
-      // eslint-disable-next-line @typescript-eslint/unbound-method
+
       expect(qr.manager.find).toHaveBeenCalledWith(Genre, {
         where: { id: In(createMovieDto.genreIds) },
       });
@@ -353,7 +356,7 @@ describe('MovieService', () => {
       await expect(
         movieService.create(createMovieDto, userId, qr),
       ).rejects.toThrow(NotFoundException);
-      // eslint-disable-next-line @typescript-eslint/unbound-method
+
       expect(qr.manager.findOne).toHaveBeenCalledWith(Director, {
         where: {
           id: createMovieDto.directorId,
@@ -386,18 +389,205 @@ describe('MovieService', () => {
       await expect(
         movieService.create(createMovieDto, userId, qr),
       ).rejects.toThrow(NotFoundException);
-      // eslint-disable-next-line @typescript-eslint/unbound-method
+
       expect(qr.manager.findOne).toHaveBeenCalledWith(Director, {
         where: {
           id: createMovieDto.directorId,
         },
       });
-      // eslint-disable-next-line @typescript-eslint/unbound-method
+
       expect(qr.manager.find).toHaveBeenCalledWith(Genre, {
         where: {
           id: In(createMovieDto.genreIds),
         },
       });
+    });
+  });
+
+  describe('update', () => {
+    let qr: jest.Mocked<QueryRunner>;
+    let updateMovieMock: jest.SpyInstance;
+    let updateMovieDetailMock: jest.SpyInstance;
+    let updateMovieGenreRelationMock: jest.SpyInstance;
+
+    beforeEach(() => {
+      qr = {
+        connect: jest.fn(),
+        startTransaction: jest.fn(),
+        commitTransaction: jest.fn(),
+        rollbackTransaction: jest.fn(),
+        release: jest.fn(),
+        manager: {
+          findOne: jest.fn(),
+          find: jest.fn(),
+        },
+      } as unknown as jest.Mocked<QueryRunner>;
+
+      updateMovieMock = jest.spyOn(movieService, 'updateMovie');
+      updateMovieDetailMock = jest.spyOn(movieService, 'updateMovieDetail');
+      updateMovieGenreRelationMock = jest.spyOn(
+        movieService,
+        'updateMovieGenreRelation',
+      );
+
+      jest.spyOn(dataSource, 'createQueryRunner').mockReturnValue(qr);
+    });
+
+    it('should update a movie', async () => {
+      const updateMovieDto: UpdateMovieDto = {
+        title: 'Updated Movie Title',
+        directorId: 1,
+        genreIds: [1, 2],
+        detail: 'Some detail',
+      };
+      const movie = {
+        id: 1,
+        detail: { id: 1 },
+        genres: [{ id: 1 }, { id: 2 }],
+      } as Movie;
+      const director = { id: 1, name: 'Director 1' } as Director;
+      const genres = [
+        { id: 1, name: 'Genre 1' },
+        { id: 2, name: 'Genre 2' },
+      ] as Genre[];
+
+      (qr.connect as any).mockReturnValue(null);
+      (qr.manager.findOne as any).mockResolvedValueOnce(movie);
+      (qr.manager.findOne as any).mockResolvedValueOnce(director);
+      jest.spyOn(movieRepository, 'findOne').mockResolvedValue(movie);
+      (qr.manager.find as any).mockResolvedValueOnce(genres);
+      updateMovieMock.mockResolvedValue(undefined);
+      updateMovieDetailMock.mockResolvedValue(undefined);
+      updateMovieGenreRelationMock.mockResolvedValue(undefined);
+
+      const result = await movieService.update(1, updateMovieDto);
+
+      expect(qr.connect).toHaveBeenCalled();
+
+      expect(qr.startTransaction).toHaveBeenCalled();
+      expect(qr.manager.findOne).toHaveBeenCalledWith(Movie, {
+        where: { id: 1 },
+        relations: ['detail', 'genres'],
+      });
+      expect(qr.manager.findOne).toHaveBeenCalledWith(Director, {
+        where: { id: updateMovieDto.directorId },
+      });
+      expect(qr.manager.find).toHaveBeenCalledWith(Genre, {
+        where: { id: In(updateMovieDto.genreIds as number[]) },
+      });
+      expect(updateMovieMock).toHaveBeenCalledWith(qr, 1, expect.any(Object));
+      expect(updateMovieDetailMock).toHaveBeenCalledWith(
+        qr,
+        movie,
+        updateMovieDto.detail as string,
+      );
+      expect(updateMovieGenreRelationMock).toHaveBeenCalledWith(
+        qr,
+        movie,
+        genres,
+        1,
+      );
+      expect(qr.commitTransaction).toHaveBeenCalled();
+      expect(result).toEqual(movie);
+    });
+
+    it('should throw NotFoundException if movie to update not found', async () => {
+      const updateMovieDto: UpdateMovieDto = {
+        title: 'Updated Movie Title',
+      };
+
+      (qr.manager.findOne as any).mockResolvedValueOnce(null);
+
+      await expect(movieService.update(999, updateMovieDto)).rejects.toThrow(
+        NotFoundException,
+      );
+
+      expect(qr.connect).toHaveBeenCalled();
+      expect(qr.startTransaction).toHaveBeenCalled();
+      expect(qr.manager.findOne).toHaveBeenCalledWith(Movie, {
+        where: { id: 999 },
+        relations: ['detail', 'genres'],
+      });
+      expect(qr.rollbackTransaction).toHaveBeenCalled();
+      expect(qr.release).toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException if new director does not exist', async () => {
+      const updateMovieDto: UpdateMovieDto = {
+        title: 'Updated Movie Title',
+        directorId: 1,
+      };
+      const movie = { id: 1, detail: { id: 1 }, genres: [] };
+
+      (qr.manager.findOne as any).mockResolvedValueOnce(movie);
+      (qr.manager.findOne as any).mockResolvedValueOnce(null);
+
+      await expect(movieService.update(1, updateMovieDto)).rejects.toThrow(
+        NotFoundException,
+      );
+
+      expect(qr.connect).toHaveBeenCalled();
+      expect(qr.startTransaction).toHaveBeenCalled();
+      expect(qr.manager.findOne).toHaveBeenCalledWith(Movie, {
+        where: { id: 1 },
+        relations: ['detail', 'genres'],
+      });
+      expect(qr.manager.findOne).toHaveBeenCalledWith(Director, {
+        where: { id: updateMovieDto.directorId },
+      });
+      expect(qr.rollbackTransaction).toHaveBeenCalled();
+      expect(qr.release).toHaveBeenCalled();
+    });
+
+    it('should handle errors and rollback transaction', async () => {
+      const updateMovieDto: UpdateMovieDto = {
+        title: 'Updated Movie Title',
+        genreIds: [1, 2],
+      };
+      const movie = { id: 1, detail: { id: 1 }, genres: [] };
+
+      (qr.manager.findOne as any).mockResolvedValueOnce(movie);
+      (qr.manager.find as any).mockResolvedValueOnce([
+        {
+          id: 1,
+          name: 'Genre 1',
+        },
+      ]);
+
+      await expect(movieService.update(1, updateMovieDto)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(qr.manager.findOne).toHaveBeenCalledWith(Movie, {
+        where: { id: 1 },
+        relations: ['detail', 'genres'],
+      });
+      expect(qr.manager.find).toHaveBeenCalledWith(Genre, {
+        where: { id: In(updateMovieDto.genreIds as number[]) },
+      });
+      expect(qr.rollbackTransaction).toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException if no fields to update', async () => {
+      const updateMovieDto: UpdateMovieDto = {
+        title: 'Updated Movie Title',
+      };
+
+      (qr.manager.findOne as any).mockResolvedValueOnce(
+        new Error('Database Error'),
+      );
+
+      await expect(movieService.update(1, updateMovieDto)).rejects.toThrow(
+        Error,
+      );
+
+      expect(qr.connect).toHaveBeenCalled();
+      expect(qr.startTransaction).toHaveBeenCalled();
+      expect(qr.manager.findOne).toHaveBeenCalledWith(Movie, {
+        where: { id: 1 },
+        relations: ['detail', 'genres'],
+      });
+      expect(qr.rollbackTransaction).toHaveBeenCalled();
+      expect(qr.release).toHaveBeenCalled();
     });
   });
 
@@ -459,7 +649,7 @@ describe('MovieService', () => {
       updateLikeMock = jest.spyOn(movieUserLikeRepository, 'update');
     });
 
-    it('should like a movie', async () => {
+    it('should toggle like a movie', async () => {
       const movie = { id: 1 };
       const user = { id: 1 };
       const likeRecord = { movie, user, isLike: true };
@@ -489,6 +679,93 @@ describe('MovieService', () => {
         { isLike: false },
       );
       expect(result).toEqual({ isLike: false });
+    });
+
+    it('should delete like record if toggling like to the same status', async () => {
+      const movie = { id: 1 };
+      const user = { id: 1 };
+      const likeRecord = { movie, user, isLike: true };
+
+      findOneMovieMock.mockResolvedValue(movie as Movie);
+      findOneUserMock.mockResolvedValue(user as User);
+      getLikedRecordMock
+        .mockResolvedValueOnce(likeRecord)
+        .mockResolvedValueOnce(null);
+
+      const result = await movieService.toggleMovieLike(
+        movie.id,
+        user.id,
+        true,
+      );
+
+      expect(findOneMovieMock).toHaveBeenCalledWith({
+        where: { id: movie.id },
+      });
+      expect(findOneUserMock).toHaveBeenCalledWith({ where: { id: user.id } });
+      expect(getLikedRecordMock).toHaveBeenCalledWith(movie.id, user.id);
+      expect(deleteMock).toHaveBeenCalledWith({
+        movie: { id: movie.id },
+        user: { id: user.id },
+      });
+      expect(result.isLike).toBeNull();
+    });
+
+    it('should save a new like record when no existing record', async () => {
+      const movie = { id: 1 };
+      const user = { id: 1 };
+
+      findOneMovieMock.mockResolvedValue(movie as Movie);
+      findOneUserMock.mockResolvedValue(user as User);
+      getLikedRecordMock
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ isLike: true });
+      saveLikeMock.mockResolvedValue({ isLike: true } as MovieUserLike);
+
+      const result = await movieService.toggleMovieLike(
+        movie.id,
+        user.id,
+        true,
+      );
+
+      expect(findOneMovieMock).toHaveBeenCalledWith({
+        where: { id: movie.id },
+      });
+      expect(findOneUserMock).toHaveBeenCalledWith({ where: { id: user.id } });
+      expect(getLikedRecordMock).toHaveBeenCalledWith(movie.id, user.id);
+      expect(saveLikeMock).toHaveBeenCalledWith({
+        movie,
+        user,
+        isLike: true,
+      });
+      expect(result).toEqual({ isLike: true });
+    });
+
+    it('should throw BadRequestException if movie not found', async () => {
+      findOneMovieMock.mockResolvedValue(null);
+      findOneUserMock.mockResolvedValue({ id: 1 } as User);
+
+      await expect(movieService.toggleMovieLike(999, 1, true)).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(findOneMovieMock).toHaveBeenCalledWith({
+        where: { id: 999 },
+      });
+      expect(findOneUserMock).not.toHaveBeenCalled();
+    });
+
+    it('should throw UnauthorizedException if user not found', async () => {
+      const movie = { id: 1 };
+
+      findOneMovieMock.mockResolvedValue(movie as Movie);
+      findOneUserMock.mockResolvedValue(null);
+
+      await expect(movieService.toggleMovieLike(1, 999, true)).rejects.toThrow(
+        UnauthorizedException,
+      );
+      expect(findOneMovieMock).toHaveBeenCalledWith({
+        where: { id: movie.id },
+      });
+      expect(findOneUserMock).toHaveBeenCalledWith({ where: { id: 999 } });
     });
   });
 });

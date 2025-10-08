@@ -105,8 +105,7 @@ export class MovieService {
     if (userId) {
       const movieIds = data.map((movie) => movie.id);
 
-      const likedMovies =
-        movieIds.length < 1 ? [] : await this.getLikedMovies(movieIds, userId);
+      const likedMovies = await this.getLikedMovies(movieIds, userId);
 
       const likedMovieMap = likedMovies.reduce(
         (acc, next) => ({
@@ -264,30 +263,40 @@ export class MovieService {
   }
 
   /* istanbul ignore next */
-  deleteMovie(id: number) {
-    return this.movieRepository
+  updateMovie(qr: QueryRunner, id: number, movieUpdateFields: Partial<Movie>) {
+    return qr.manager
       .createQueryBuilder()
-      .delete()
-      .from(Movie)
+      .update(Movie)
+      .set(movieUpdateFields)
       .where('id = :id', { id })
       .execute();
   }
+
   /* istanbul ignore next */
+  updateMovieDetail(qr: QueryRunner, movie: Movie, detail: string) {
+    return qr.manager
+      .createQueryBuilder()
+      .update(MovieDetail)
+      .set({ detail })
+      .where('id = :id', { id: movie.detail.id })
+      .execute();
+  }
 
-  async remove(id: number) {
-    const movie = await this.movieRepository.findOne({
-      where: { id },
-    });
-
-    if (!movie) {
-      throw new NotFoundException('존재하지 않는 ID 값의 영화입니다.');
-    }
-
-    await this.deleteMovie(id);
-
-    await this.movieDetailRepository.delete(movie.detail.id);
-
-    return id;
+  /* istanbul ignore next */
+  updateMovieGenreRelation(
+    qr: QueryRunner,
+    movie: Movie,
+    newGenres: Genre[],
+    id: number,
+  ) {
+    return qr.manager
+      .createQueryBuilder()
+      .relation(Movie, 'genres')
+      .of(id)
+      .addAndRemove(
+        newGenres.map((genre) => genre.id),
+        movie.genres.map((genre) => genre.id),
+      );
   }
 
   async update(id: number, updateMovieDto: UpdateMovieDto) {
@@ -350,32 +359,17 @@ export class MovieService {
         }),
       };
 
-      await qr.manager
-        .createQueryBuilder()
-        .update(Movie)
-        .set(movieUpdateFields)
-        .where('id = :id', { id })
-        .execute();
+      await this.updateMovie(qr, id, movieUpdateFields);
 
       if (detail) {
-        await qr.manager
-          .createQueryBuilder()
-          .update(MovieDetail)
-          .set({ detail })
-          .where('id = :id', { id: movie.detail.id })
-          .execute();
+        await this.updateMovieDetail(qr, movie, detail);
       }
 
       if (newGenres.length > 0) {
-        await qr.manager
-          .createQueryBuilder()
-          .relation(Movie, 'genres')
-          .of(id)
-          .addAndRemove(
-            newGenres.map((genre) => genre.id),
-            movie.genres.map((genre) => genre.id),
-          );
+        await this.updateMovieGenreRelation(qr, movie, newGenres, id);
       }
+
+      await qr.commitTransaction();
 
       return this.movieRepository.findOne({
         where: {
@@ -391,6 +385,33 @@ export class MovieService {
     }
   }
 
+  /* istanbul ignore next */
+  deleteMovie(id: number) {
+    return this.movieRepository
+      .createQueryBuilder()
+      .delete()
+      .from(Movie)
+      .where('id = :id', { id })
+      .execute();
+  }
+
+  async remove(id: number) {
+    const movie = await this.movieRepository.findOne({
+      where: { id },
+    });
+
+    if (!movie) {
+      throw new NotFoundException('존재하지 않는 ID 값의 영화입니다.');
+    }
+
+    await this.deleteMovie(id);
+
+    await this.movieDetailRepository.delete(movie.detail.id);
+
+    return id;
+  }
+
+  /* istanbul ignore next */
   getLikedRecord(movieId: number, userId: number) {
     return this.movieUserLikeRepository
       .createQueryBuilder('mul')
