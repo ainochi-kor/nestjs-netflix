@@ -32,8 +32,9 @@ import * as winston from 'winston';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true, // Use environment variables globally
+      envFilePath: process.env.NODE_ENV === 'test' ? 'test.env' : '.env', // Set environment file path based on NODE_ENV
       validationSchema: Joi.object({
-        ENV: Joi.string().valid('dev', 'prod').required(),
+        ENV: Joi.string().valid('test', 'dev', 'prod').required(),
         DB_TYPE: Joi.string().required(),
         DB_HOST: Joi.string().required(),
         DB_PORT: Joi.number().required(),

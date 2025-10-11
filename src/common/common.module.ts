@@ -4,7 +4,7 @@ import { CommonController } from './common.controller';
 import { MulterModule } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { join } from 'path';
-import { v4 } from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { TasksService } from './tasks.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Movie } from 'src/movie/entity/movie.entity';
@@ -18,7 +18,7 @@ import { DefaultLogger } from './logger/default.logger';
         filename: (req, file, cb) => {
           const split = file.originalname.split('.');
           const ext = split.pop();
-          const filename = `${v4()}_${Date.now()}.${ext}`;
+          const filename = `${uuidv4()}_${Date.now()}.${ext}`;
           cb(null, filename);
         },
       }),
