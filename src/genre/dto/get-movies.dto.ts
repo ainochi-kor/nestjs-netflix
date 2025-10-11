@@ -9,5 +9,5 @@ export class GetMoviesDto extends CursorPaginationDto {
     description: '영화 제목',
     example: '더글로리 시즌 4',
   })
-  title: string;
+  title?: string;
 }
