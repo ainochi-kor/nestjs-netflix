@@ -396,6 +396,7 @@ export class MovieService {
   async remove(id: number) {
     const movie = await this.movieRepository.findOne({
       where: { id },
+      relations: ['detail'],
     });
 
     if (!movie) {

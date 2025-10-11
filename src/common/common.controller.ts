@@ -26,7 +26,7 @@ export class CommonController {
   )
   createVideo(@UploadedFile() movie: Express.Multer.File) {
     return {
-      filePath: movie.filename,
+      fileName: movie.filename,
     };
   }
 }
